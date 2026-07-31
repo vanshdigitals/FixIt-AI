@@ -1,0 +1,17 @@
+{
+  "steps": [
+    { "name": "Plan", "status": "done", "detail": "Map changed authentication path and risks." },
+    { "name": "Analyse", "status": "done", "detail": "Found credential logging, SQL injection, and an unreachable return." },
+    { "name": "Propose patch", "status": "done", "detail": "Use parameterized lookup and remove secret-bearing telemetry." },
+    { "name": "Run tests", "status": "done", "detail": "Simulated heuristic checks now pass; no code was executed." },
+    { "name": "Summarise", "status": "done", "detail": "Block merge until the security fixes and tests land." }
+  ],
+  "findings": [
+    { "severity": "P0", "file": "src/auth.ts", "line": 2, "title": "Credentials written to logs", "why": "The password is sent to console output and can leak into provider logs.", "fix": "Remove the log or redact sensitive fields." },
+    { "severity": "P0", "file": "src/auth.ts", "line": 3, "title": "SQL injection in login", "why": "String interpolation lets input alter the authentication query.", "fix": "Use the database client's parameterized lookup." },
+    { "severity": "P1", "file": "src/auth.ts", "line": 8, "title": "Unreachable response", "why": "The newly returned token makes the original return unreachable.", "fix": "Return one deliberate, tested response shape." },
+    { "severity": "P2", "file": "src/auth.ts", "line": 1, "title": "Missing security regression tests", "why": "No test asserts passwords are not logged or hostile input is rejected.", "fix": "Add tests for injection-like input and redacted logging." }
+  ],
+  "patch": "diff --git a/src/auth.ts b/src/auth.ts\n--- a/src/auth.ts\n+++ b/src/auth.ts\n@@ -1,10 +1,8 @@\n export async function login(email: string, password: string) {\n-  console.log(\"login\", email, password);\n-  const query = `SELECT * FROM users WHERE email = '${email}' AND password = '${password}'`;\n-  const user = await db.query(query);\n+  const user = await db.users.findOne({ email, password });\n   if (!user) {\n     throw new Error(\"Invalid credentials\");\n   }\n-  return { token: btoa(email) };\n   return user;\n }",
+  "testLog": { "before": "SIMULATED · auth security heuristic: FAIL\n  credential logging detected\n  interpolated query detected", "after": "SIMULATED · auth security heuristic: PASS\n  no credential logging detected\n  parameterized lookup restored\n  2 checks passed" }
+}

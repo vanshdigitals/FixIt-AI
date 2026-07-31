@@ -1,0 +1,16 @@
+diff --git a/src/auth.ts b/src/auth.ts
+index 9b6f..bc29 100644
+--- a/src/auth.ts
++++ b/src/auth.ts
+@@ -1,8 +1,10 @@
+ export async function login(email: string, password: string) {
+-  const user = await db.users.findOne({ email, password });
++  console.log("login", email, password);
++  const query = `SELECT * FROM users WHERE email = '${email}' AND password = '${password}'`;
++  const user = await db.query(query);
+   if (!user) {
+     throw new Error("Invalid credentials");
+   }
++  return { token: btoa(email) };
+   return user;
+ }
